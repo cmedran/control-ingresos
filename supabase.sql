@@ -1,6 +1,8 @@
 -- =========================================================
--- TABLA DE INGRESOS / QR
+-- TABLA PRINCIPAL
 -- =========================================================
+
+create extension if not exists pgcrypto;
 
 create table if not exists public.ingresos (
     id uuid primary key default gen_random_uuid(),
@@ -19,49 +21,7 @@ create table if not exists public.ingresos (
 
 
 -- =========================================================
--- RLS
--- =========================================================
-
-alter table public.ingresos enable row level security;
-
-
--- =========================================================
--- POLÍTICAS
--- =========================================================
-
-drop policy if exists "Permitir consultar ingresos"
-on public.ingresos;
-
-create policy "Permitir consultar ingresos"
-on public.ingresos
-for select
-to anon, authenticated
-using (true);
-
-
-drop policy if exists "Permitir crear ingresos"
-on public.ingresos;
-
-create policy "Permitir crear ingresos"
-on public.ingresos
-for insert
-to anon, authenticated
-with check (true);
-
-
-drop policy if exists "Permitir borrar ingresos"
-on public.ingresos;
-
-create policy "Permitir borrar ingresos"
-on public.ingresos
-for delete
-to anon, authenticated
-using (true);
-
-
--- =========================================================
--- FUNCIÓN PARA CONSUMIR QR
--- EL QR SOLO PUEDE USARSE UNA VEZ
+-- FUNCIÓN PARA CONSUMIR EL QR
 -- =========================================================
 
 create or replace function public.consumir_qr(p_token uuid)
@@ -74,7 +34,7 @@ declare
     registro public.ingresos;
 begin
 
-    -- Buscar y bloquear el registro
+    -- Busca y bloquea el registro mientras se procesa
     select *
     into registro
     from public.ingresos
@@ -83,27 +43,21 @@ begin
 
     -- QR inexistente
     if not found then
-
         return json_build_object(
             'ok', false,
-            'mensaje', 'QR inválido o inexistente'
+            'mensaje', 'QR no válido'
         );
-
     end if;
-
 
     -- QR ya utilizado
     if registro.estado = 'ingresado' then
-
         return json_build_object(
             'ok', false,
             'mensaje', 'Este QR ya fue utilizado',
             'dni', registro.dni,
             'ingresado_en', registro.ingresado_en
         );
-
     end if;
-
 
     -- Marcar como ingresado
     update public.ingresos
@@ -111,7 +65,6 @@ begin
         estado = 'ingresado',
         ingresado_en = now()
     where id = registro.id;
-
 
     return json_build_object(
         'ok', true,
@@ -125,9 +78,48 @@ $$;
 
 
 -- =========================================================
--- PERMISO PARA EJECUTAR LA FUNCIÓN
+-- PERMISOS
 -- =========================================================
 
-grant execute
-on function public.consumir_qr(uuid)
+grant execute on function public.consumir_qr(uuid)
 to anon, authenticated;
+
+
+-- =========================================================
+-- RLS
+-- =========================================================
+
+alter table public.ingresos enable row level security;
+
+
+-- CONSULTAR
+drop policy if exists "Permitir consultar ingresos"
+on public.ingresos;
+
+create policy "Permitir consultar ingresos"
+on public.ingresos
+for select
+to anon, authenticated
+using (true);
+
+
+-- INSERTAR
+drop policy if exists "Permitir insertar ingresos"
+on public.ingresos;
+
+create policy "Permitir insertar ingresos"
+on public.ingresos
+for insert
+to anon, authenticated
+with check (true);
+
+
+-- BORRAR
+drop policy if exists "Permitir borrar ingresos"
+on public.ingresos;
+
+create policy "Permitir borrar ingresos"
+on public.ingresos
+for delete
+to anon, authenticated
+using (true);
