@@ -1,366 +1,123 @@
-/* =========================================================
-   CONFIGURACIÓN SUPABASE
-========================================================= */
+// ============================================================
+// CONFIGURACIÓN SUPABASE
+// ============================================================
 
-const SUPABASE_URL =
-    "https://lbsiqfenndpfncodezdb.supabase.co";
+const SUPABASE_URL = "https://lbsiqfenndpfncodezdb.supabase.co";
+const SUPABASE_ANON_KEY = "PEGÁ_AQUÍ_TU_ANON_KEY";
 
-const SUPABASE_ANON_KEY =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxic2lxZmVubmRwZm5jb2RlemRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1Mjg0NTksImV4cCI6MjEwNDEwNDQ1OX0.Rd2xKhCqOFvWc3DJ6q2n2qL9CFj9XVBSSyyhePURPJ4";
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+);
 
-
-const supabaseClient =
-    window.supabase.createClient(
-        SUPABASE_URL,
-        SUPABASE_ANON_KEY
-    );
-
-
-/* =========================================================
-   VARIABLES
-========================================================= */
+// ============================================================
+// VARIABLES GLOBALES
+// ============================================================
 
 let scanner = null;
+let scannerActivo = false;
+let procesandoQR = false;
 
 let ultimoTokenGenerado = null;
 let ultimoDniGenerado = null;
 
-let procesandoQR = false;
-
 let ultimoQRDetectado = "";
 let ultimoQRDetectadoEn = 0;
 
-let toastTimer = null;
+
+// ============================================================
+// INICIO
+// ============================================================
+
+document.addEventListener("DOMContentLoaded", async () => {
+    await actualizarDashboard();
+    await cargarRegistros();
+
+    actualizarBotonesScanner(false);
+});
 
 
-/* =========================================================
-   INICIO
-========================================================= */
-
-document.addEventListener(
-    "DOMContentLoaded",
-    async () => {
-
-        const dniInput =
-            document.getElementById("dni");
-
-        dniInput.addEventListener(
-            "keydown",
-            event => {
-
-                if (event.key === "Enter") {
-                    generarQR();
-                }
-
-            }
-        );
-
-
-        await actualizarDashboard();
-
-        await cargarRegistros();
-
-    }
-);
-
-
-/* =========================================================
-   UTILIDADES
-========================================================= */
-
-function escaparHTML(texto) {
-
-    const div =
-        document.createElement("div");
-
-    div.textContent =
-        texto ?? "";
-
-    return div.innerHTML;
-}
-
-
-function formatearFecha(fecha) {
-
-    if (!fecha) {
-        return "-";
-    }
-
-    const date =
-        new Date(fecha);
-
-    if (Number.isNaN(date.getTime())) {
-        return "-";
-    }
-
-    return date.toLocaleString(
-        "es-AR",
-        {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit"
-        }
-    );
-}
-
-
-function esUUID(valor) {
-
-    const regex =
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-    return regex.test(valor);
-}
-
-
-/* =========================================================
-   TOAST
-========================================================= */
-
-function mostrarToast(
-    titulo,
-    mensaje,
-    tipo = "success"
-) {
-
-    const toast =
-        document.getElementById("toast");
-
-    const icon =
-        document.getElementById("toastIcon");
-
-    document.getElementById(
-        "toastTitle"
-    ).textContent = titulo;
-
-    document.getElementById(
-        "toastMessage"
-    ).textContent = mensaje;
-
-
-    if (tipo === "error") {
-
-        icon.style.background =
-            "#fef2f2";
-
-        icon.style.color =
-            "#dc2626";
-
-        icon.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none">
-                <path
-                    d="M12 9v4"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                />
-                <circle
-                    cx="12"
-                    cy="16"
-                    r="1"
-                    fill="currentColor"
-                />
-                <path
-                    d="M10.3 4.7 3.4 16.6A2 2 0 0 0 5.1 19.5h13.8a2 2 0 0 0 1.7-2.9L13.7 4.7a2 2 0 0 0-3.4 0Z"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                    stroke-linejoin="round"
-                />
-            </svg>
-        `;
-
-    } else {
-
-        icon.style.background =
-            "#ecfdf3";
-
-        icon.style.color =
-            "#16a34a";
-
-        icon.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none">
-                <path
-                    d="m5 12 4 4L19 6"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                />
-            </svg>
-        `;
-
-    }
-
-
-    toast.classList.add("show");
-
-
-    clearTimeout(toastTimer);
-
-
-    toastTimer =
-        setTimeout(
-            () => {
-                toast.classList.remove("show");
-            },
-            3500
-        );
-}
-
-
-/* =========================================================
-   DASHBOARD
-========================================================= */
+// ============================================================
+// DASHBOARD
+// ============================================================
 
 async function actualizarDashboard() {
-
     try {
+        const { data, error } = await supabaseClient
+            .from("ingresos")
+            .select("estado");
 
-        const { data, error } =
-            await supabaseClient
-                .from("ingresos")
-                .select("estado");
+        if (error) throw error;
 
+        const totalGenerados = data.length;
+        const totalIngresos = data.filter(
+            registro => registro.estado === "ingresado"
+        ).length;
 
-        if (error) {
-            throw error;
-        }
+        const totalFaltantes = totalGenerados - totalIngresos;
 
+        document.getElementById("totalGenerados").textContent =
+            totalGenerados;
 
-        const total =
-            data.length;
+        document.getElementById("totalIngresos").textContent =
+            totalIngresos;
 
-        const ingresos =
-            data.filter(
-                registro =>
-                    registro.estado === "ingresado"
-            ).length;
-
-        const faltantes =
-            total - ingresos;
-
-
-        document.getElementById(
-            "totalGenerados"
-        ).textContent = total;
-
-
-        document.getElementById(
-            "totalIngresos"
-        ).textContent = ingresos;
-
-
-        document.getElementById(
-            "totalFaltantes"
-        ).textContent = faltantes;
+        document.getElementById("totalFaltantes").textContent =
+            totalFaltantes;
 
     } catch (error) {
-
-        console.error(
-            "Error actualizando dashboard:",
-            error
-        );
-
+        console.error("Error actualizando dashboard:", error);
     }
 }
 
 
-/* =========================================================
-   GENERAR QR
-========================================================= */
+// ============================================================
+// GENERAR QR
+// ============================================================
 
 async function generarQR() {
 
-    const input =
-        document.getElementById("dni");
-
-    const dni =
-        input.value.trim();
-
+    const input = document.getElementById("dni");
+    const dni = input.value.trim();
 
     if (!dni) {
-
-        mostrarToast(
-            "DNI requerido",
-            "Ingresá un DNI para generar el acceso.",
-            "error"
-        );
-
+        mostrarNotificacion("Ingresá un DNI.", "error");
         input.focus();
-
         return;
     }
 
-
     if (!/^\d+$/.test(dni)) {
-
-        mostrarToast(
-            "DNI inválido",
+        mostrarNotificacion(
             "El DNI debe contener solamente números.",
             "error"
         );
-
         input.focus();
-
         return;
     }
 
-
-    const btn =
-        document.getElementById("btnGenerar");
-
-
-    btn.disabled = true;
-
-    btn.innerHTML = `
-        <span class="spinner"></span>
-        Generando...
-    `;
-
-
     try {
 
-        /* -----------------------------------------
-           Verificar DNI existente
-        ----------------------------------------- */
+        // Verificar si el DNI ya existe
+        const { data: existente, error: errorBusqueda } =
+            await supabaseClient
+                .from("ingresos")
+                .select("id")
+                .eq("dni", dni)
+                .maybeSingle();
 
-        const {
-            data: existente,
-            error: errorBusqueda
-        } = await supabaseClient
-            .from("ingresos")
-            .select("id, dni, estado")
-            .eq("dni", dni)
-            .maybeSingle();
-
-
-        if (errorBusqueda) {
-            throw errorBusqueda;
-        }
-
+        if (errorBusqueda) throw errorBusqueda;
 
         if (existente) {
-
-            mostrarToast(
-                "DNI ya registrado",
-                "Ya existe un código generado para este DNI.",
+            mostrarNotificacion(
+                "Ese DNI ya tiene un QR generado.",
                 "error"
             );
-
             return;
         }
 
 
-        /* -----------------------------------------
-           Crear registro
-        ----------------------------------------- */
-
-        const {
-            data,
-            error
-        } = await supabaseClient
+        // Crear registro
+        const { data, error } = await supabaseClient
             .from("ingresos")
             .insert({
                 dni: dni
@@ -368,221 +125,142 @@ async function generarQR() {
             .select()
             .single();
 
-
-        if (error) {
-            throw error;
-        }
+        if (error) throw error;
 
 
-        ultimoTokenGenerado =
-            data.token;
-
-        ultimoDniGenerado =
-            data.dni;
+        // Guardar datos
+        ultimoTokenGenerado = data.token;
+        ultimoDniGenerado = data.dni;
 
 
-        /* -----------------------------------------
-           Generar QR
-        ----------------------------------------- */
-
-        const contenedorQR =
-            document.getElementById("qrcode");
-
-
+        // Limpiar QR anterior
+        const contenedorQR = document.getElementById("qrcode");
         contenedorQR.innerHTML = "";
 
 
-        new QRCode(
-            contenedorQR,
-            {
-                text: data.token,
-
-                width: 320,
-                height: 320,
-
-                /*
-                 * M ofrece un buen equilibrio
-                 * entre tolerancia a daños y
-                 * facilidad de lectura.
-                 */
-                correctLevel:
-                    QRCode.CorrectLevel.M
-            }
-        );
+        // Generar QR
+        new QRCode(contenedorQR, {
+            text: data.token,
+            width: 320,
+            height: 320,
+            correctLevel: QRCode.CorrectLevel.M
+        });
 
 
-        /* -----------------------------------------
-           Mostrar información
-        ----------------------------------------- */
+        // Mostrar información
+        const qrInfo = document.getElementById("qrInfo");
 
-        document.getElementById(
-            "qrInfo"
-        ).innerHTML = `
-            Acceso asociado al DNI
-            <strong>${escaparHTML(data.dni)}</strong>
+        qrInfo.innerHTML = `
+            <div class="qr-status success">
+                <span class="status-dot"></span>
+                QR generado correctamente
+            </div>
+
+            <div class="qr-person">
+                <span>DNI</span>
+                <strong>${escapeHTML(data.dni)}</strong>
+            </div>
+
+            <small>
+                Este código puede utilizarse una sola vez.
+            </small>
         `;
 
 
-        document.getElementById(
-            "qrResult"
-        ).classList.remove("hidden");
-
-
-        document.getElementById(
-            "btnCompartir"
-        ).disabled = false;
-
-
-        document.getElementById(
-            "btnDescargar"
-        ).disabled = false;
-
-
-        document.getElementById(
-            "btnImprimir"
-        ).disabled = false;
-
-
-        mostrarToast(
-            "QR generado",
-            "El código de acceso está listo para usar."
-        );
+        // Activar botones
+        document.getElementById("btnCompartir").disabled = false;
+        document.getElementById("btnDescargar").disabled = false;
+        document.getElementById("btnImprimir").disabled = false;
 
 
         input.value = "";
 
-
         await actualizarDashboard();
-
         await cargarRegistros();
+
+        mostrarNotificacion(
+            "QR generado correctamente.",
+            "success"
+        );
 
     } catch (error) {
 
-        console.error(
-            "Error generando QR:",
-            error
-        );
+        console.error("Error generando QR:", error);
 
-
-        mostrarToast(
-            "Error",
-            "No fue posible generar el código QR.",
+        mostrarNotificacion(
+            "No se pudo generar el QR.",
             "error"
         );
-
-    } finally {
-
-        btn.disabled = false;
-
-        btn.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none">
-                <path
-                    d="M12 5v14M5 12h14"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                />
-            </svg>
-
-            Generar QR
-        `;
-
     }
 }
 
 
-/* =========================================================
-   OBTENER QR COMO BLOB
-========================================================= */
+// ============================================================
+// OBTENER QR COMO BLOB
+// ============================================================
 
 async function obtenerQRComoBlob() {
 
-    const contenedor =
-        document.getElementById("qrcode");
+    const contenedor = document.getElementById("qrcode");
 
-
-    const canvas =
-        contenedor.querySelector("canvas");
-
+    const canvas = contenedor.querySelector("canvas");
 
     if (canvas) {
 
-        return new Promise(
-            resolve => {
+        return new Promise(resolve => {
 
-                canvas.toBlob(
-                    blob => resolve(blob),
-                    "image/png"
-                );
+            canvas.toBlob(
+                blob => resolve(blob),
+                "image/png"
+            );
 
-            }
-        );
+        });
 
     }
 
 
-    const img =
-        contenedor.querySelector("img");
+    const img = contenedor.querySelector("img");
 
+    if (img) {
 
-    if (!img) {
-        throw new Error(
-            "No se encontró la imagen del QR."
-        );
+        const response = await fetch(img.src);
+
+        return await response.blob();
     }
 
 
-    const response =
-        await fetch(img.src);
-
-
-    return await response.blob();
+    throw new Error("No se encontró el QR.");
 }
 
 
-/* =========================================================
-   COMPARTIR WHATSAPP
-========================================================= */
+// ============================================================
+// COMPARTIR QR
+// ============================================================
 
 async function compartirWhatsApp() {
 
-    if (!ultimoTokenGenerado) {
-
-        mostrarToast(
-            "Sin QR",
-            "Primero generá un código QR.",
+    if (!ultimoTokenGenerado || !ultimoDniGenerado) {
+        mostrarNotificacion(
+            "Primero generá un QR.",
             "error"
         );
-
         return;
     }
 
-
     try {
 
-        const blob =
-            await obtenerQRComoBlob();
+        const blob = await obtenerQRComoBlob();
+
+        const archivo = new File(
+            [blob],
+            `QR_DNI_${ultimoDniGenerado}.png`,
+            {
+                type: "image/png"
+            }
+        );
 
 
-        const archivo =
-            new File(
-                [
-                    blob
-                ],
-                `QR_DNI_${ultimoDniGenerado}.png`,
-                {
-                    type: "image/png"
-                }
-            );
-
-
-        /*
-         * En dispositivos compatibles,
-         * Web Share permite seleccionar
-         * WhatsApp y adjuntar realmente
-         * el PNG.
-         */
-
+        // Compartir nativamente
         if (
             navigator.share &&
             navigator.canShare &&
@@ -592,184 +270,108 @@ async function compartirWhatsApp() {
         ) {
 
             await navigator.share({
-
-                title:
-                    "Código de acceso",
-
-                text:
-                    `Código de acceso - DNI ${ultimoDniGenerado}`,
-
+                title: "QR de acceso",
+                text: `QR de acceso - DNI ${ultimoDniGenerado}`,
                 files: [archivo]
-
             });
-
-
-            mostrarToast(
-                "QR compartido",
-                "El código fue enviado al menú de compartir."
-            );
 
             return;
         }
 
 
-        /*
-         * Fallback para navegadores que
-         * no soportan compartir archivos.
-         */
-
+        // Fallback
         descargarBlob(
             blob,
             `QR_DNI_${ultimoDniGenerado}.png`
         );
 
-
-        const texto =
-            encodeURIComponent(
-                `Código de acceso - DNI ${ultimoDniGenerado}`
-            );
-
-
-        window.open(
-            `https://wa.me/?text=${texto}`,
-            "_blank"
+        const mensaje = encodeURIComponent(
+            `QR de acceso - DNI ${ultimoDniGenerado}`
         );
 
-
-        mostrarToast(
-            "QR preparado",
-            "El PNG fue descargado y WhatsApp fue abierto."
+        window.open(
+            `https://wa.me/?text=${mensaje}`,
+            "_blank"
         );
 
     } catch (error) {
 
-        if (
-            error?.name === "AbortError"
-        ) {
-            return;
+        console.error("Error compartiendo:", error);
+
+        if (error.name !== "AbortError") {
+
+            mostrarNotificacion(
+                "No se pudo compartir el QR.",
+                "error"
+            );
         }
-
-
-        console.error(
-            "Error compartiendo QR:",
-            error
-        );
-
-
-        mostrarToast(
-            "Error al compartir",
-            "No fue posible compartir el código.",
-            "error"
-        );
     }
 }
 
 
-/* =========================================================
-   ENVIAR QR DE REGISTRO
-========================================================= */
+// ============================================================
+// ENVIAR QR DESDE TABLA
+// ============================================================
 
-async function enviarWhatsAppRegistro(
-    dni,
-    token
-) {
+async function enviarWhatsAppRegistro(dni, token) {
 
     try {
 
-        const contenedor =
-            document.createElement("div");
+        const contenedor = document.createElement("div");
+
+        contenedor.style.position = "fixed";
+        contenedor.style.left = "-99999px";
+        contenedor.style.top = "0";
+
+        document.body.appendChild(contenedor);
 
 
-        contenedor.style.position =
-            "fixed";
-
-        contenedor.style.left =
-            "-10000px";
-
-        contenedor.style.top =
-            "0";
+        new QRCode(contenedor, {
+            text: token,
+            width: 320,
+            height: 320,
+            correctLevel: QRCode.CorrectLevel.M
+        });
 
 
-        document.body.appendChild(
-            contenedor
+        await new Promise(resolve =>
+            setTimeout(resolve, 150)
         );
-
-
-        new QRCode(
-            contenedor,
-            {
-                text: token,
-
-                width: 320,
-                height: 320,
-
-                correctLevel:
-                    QRCode.CorrectLevel.M
-            }
-        );
-
-
-        /*
-         * Esperamos a que qrcodejs
-         * termine de construir el QR.
-         */
-
-        await new Promise(
-            resolve =>
-                setTimeout(resolve, 100)
-        );
-
-
-        const canvas =
-            contenedor.querySelector("canvas");
 
 
         let blob;
 
+        const canvas = contenedor.querySelector("canvas");
 
         if (canvas) {
 
-            blob =
-                await new Promise(
-                    resolve => {
-
-                        canvas.toBlob(
-                            result =>
-                                resolve(result),
-                            "image/png"
-                        );
-
-                    }
-                );
+            blob = await new Promise(resolve =>
+                canvas.toBlob(
+                    resolve,
+                    "image/png"
+                )
+            );
 
         } else {
 
-            const img =
-                contenedor.querySelector("img");
+            const img = contenedor.querySelector("img");
 
-            const response =
-                await fetch(img.src);
+            const response = await fetch(img.src);
 
-            blob =
-                await response.blob();
+            blob = await response.blob();
         }
 
 
-        document.body.removeChild(
-            contenedor
+        const archivo = new File(
+            [blob],
+            `QR_DNI_${dni}.png`,
+            {
+                type: "image/png"
+            }
         );
 
 
-        const archivo =
-            new File(
-                [
-                    blob
-                ],
-                `QR_DNI_${dni}.png`,
-                {
-                    type: "image/png"
-                }
-            );
+        document.body.removeChild(contenedor);
 
 
         if (
@@ -781,15 +383,9 @@ async function enviarWhatsAppRegistro(
         ) {
 
             await navigator.share({
-
-                title:
-                    "Código de acceso",
-
-                text:
-                    `Código de acceso - DNI ${dni}`,
-
+                title: "QR de acceso",
+                text: `QR de acceso - DNI ${dni}`,
                 files: [archivo]
-
             });
 
             return;
@@ -802,163 +398,214 @@ async function enviarWhatsAppRegistro(
         );
 
 
+        const mensaje = encodeURIComponent(
+            `QR de acceso - DNI ${dni}`
+        );
+
         window.open(
-            `https://wa.me/?text=${encodeURIComponent(
-                `Código de acceso - DNI ${dni}`
-            )}`,
+            `https://wa.me/?text=${mensaje}`,
             "_blank"
         );
 
     } catch (error) {
 
         console.error(
-            "Error compartiendo registro:",
+            "Error compartiendo QR:",
             error
         );
 
-
-        mostrarToast(
-            "Error",
-            "No fue posible compartir el QR.",
+        mostrarNotificacion(
+            "No se pudo compartir el QR.",
             "error"
         );
     }
 }
 
 
-/* =========================================================
-   DESCARGAR QR
-========================================================= */
+// ============================================================
+// DESCARGAR QR
+// ============================================================
 
 async function descargarQR() {
 
-    if (!ultimoTokenGenerado) {
-        return;
-    }
-
-
     try {
 
-        const blob =
-            await obtenerQRComoBlob();
-
+        const blob = await obtenerQRComoBlob();
 
         descargarBlob(
             blob,
             `QR_DNI_${ultimoDniGenerado}.png`
         );
 
-
-        mostrarToast(
-            "QR descargado",
-            "La imagen fue guardada correctamente."
-        );
-
     } catch (error) {
 
-        console.error(
-            error
-        );
+        console.error(error);
 
-        mostrarToast(
-            "Error",
-            "No fue posible descargar el QR.",
+        mostrarNotificacion(
+            "No se pudo descargar el QR.",
             "error"
         );
     }
 }
 
 
-function descargarBlob(
-    blob,
-    nombre
-) {
+function descargarBlob(blob, nombre) {
 
-    const url =
-        URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
 
+    const enlace = document.createElement("a");
 
-    const enlace =
-        document.createElement("a");
+    enlace.href = url;
+    enlace.download = nombre;
 
-
-    enlace.href =
-        url;
-
-    enlace.download =
-        nombre;
-
-
-    document.body.appendChild(
-        enlace
-    );
-
+    document.body.appendChild(enlace);
 
     enlace.click();
 
-
     enlace.remove();
 
-
-    setTimeout(
-        () => {
-            URL.revokeObjectURL(url);
-        },
-        1000
-    );
+    URL.revokeObjectURL(url);
 }
 
 
-/* =========================================================
-   IMPRIMIR QR
-========================================================= */
+// ============================================================
+// IMPRIMIR QR
+// ============================================================
 
 function imprimirQR() {
 
     if (!ultimoTokenGenerado) {
+
+        mostrarNotificacion(
+            "Primero generá un QR.",
+            "error"
+        );
+
         return;
     }
 
 
-    window.print();
+    const contenedor = document.getElementById("qrcode");
+
+    const imagen =
+        contenedor.querySelector("img") ||
+        contenedor.querySelector("canvas");
+
+
+    if (!imagen) {
+
+        mostrarNotificacion(
+            "No se encontró el QR.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    const ventana = window.open(
+        "",
+        "_blank",
+        "width=500,height=700"
+    );
+
+
+    let src;
+
+    if (imagen.tagName === "CANVAS") {
+        src = imagen.toDataURL("image/png");
+    } else {
+        src = imagen.src;
+    }
+
+
+    ventana.document.write(`
+        <!DOCTYPE html>
+
+        <html>
+
+        <head>
+
+            <title>QR de acceso</title>
+
+            <style>
+
+                body {
+                    margin: 0;
+                    min-height: 100vh;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-family: Arial, sans-serif;
+                }
+
+                .ticket {
+                    text-align: center;
+                }
+
+                img {
+                    width: 320px;
+                    height: 320px;
+                }
+
+                h2 {
+                    margin-bottom: 8px;
+                }
+
+                p {
+                    margin-top: 0;
+                    color: #555;
+                }
+
+            </style>
+
+        </head>
+
+        <body>
+
+            <div class="ticket">
+
+                <h2>QR DE ACCESO</h2>
+
+                <p>DNI: ${escapeHTML(ultimoDniGenerado)}</p>
+
+                <img src="${src}">
+
+            </div>
+
+        </body>
+
+        </html>
+    `);
+
+
+    ventana.document.close();
+
+    ventana.focus();
+
+    setTimeout(() => {
+
+        ventana.print();
+
+    }, 300);
 }
 
 
-/* =========================================================
-   SCANNER
-========================================================= */
+// ============================================================
+// SCANNER
+// ============================================================
 
 async function iniciarScanner() {
 
     const resultado =
         document.getElementById("resultado");
 
-    const btnIniciar =
-        document.getElementById("iniciarScanner");
-
-    const btnDetener =
-        document.getElementById("detenerScanner");
-
-
-    resultado.className =
-        "resultado loading";
-
+    resultado.className = "resultado";
 
     resultado.innerHTML = `
-        <div class="resultado-icon">
-            <svg viewBox="0 0 24 24" fill="none">
-                <path
-                    d="M12 5v14M5 12h14"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                />
-            </svg>
-        </div>
-
-        <div>
-            <strong>Activando cámara...</strong>
-            <span>Esperando acceso a la cámara.</span>
+        <div class="scanner-status loading">
+            <span class="spinner"></span>
+            Iniciando cámara trasera...
         </div>
     `;
 
@@ -970,105 +617,56 @@ async function iniciarScanner() {
         }
 
 
-        scanner =
-            new Html5Qrcode(
-                "reader",
-                {
-                    verbose: false,
+        scanner = new Html5Qrcode(
+            "reader",
+            {
+                verbose: false
+            }
+        );
 
-                    /*
-                     * Le indicamos al lector que
-                     * solamente nos interesa QR.
-                     *
-                     * Esto evita que analice otros
-                     * formatos de códigos.
-                     */
 
-                    formatsToSupport: [
-                        Html5QrcodeSupportedFormats.QR_CODE
-                    ],
-
-                    /*
-                     * Utiliza BarcodeDetector
-                     * cuando el navegador lo soporte.
-                     */
-
-                    useBarCodeDetectorIfSupported: true
-                }
-            );
-
+        /*
+         * IMPORTANTE:
+         *
+         * "environment" = cámara trasera
+         * "user"        = cámara frontal
+         *
+         * Usamos environment explícitamente.
+         */
 
         const configuracion = {
 
-            /*
-             * Más cuadros por segundo
-             * = menor tiempo de respuesta.
-             */
-
             fps: 15,
 
-
-            /*
-             * Área de lectura dinámica.
-             * Se adapta al tamaño del celular.
-             */
-
-            qrbox: (
+            qrbox: function (
                 viewfinderWidth,
                 viewfinderHeight
-            ) => {
+            ) {
 
-                const minEdge =
-                    Math.min(
-                        viewfinderWidth,
-                        viewfinderHeight
-                    );
+                const minEdge = Math.min(
+                    viewfinderWidth,
+                    viewfinderHeight
+                );
 
-
-                const size =
-                    Math.floor(
-                        minEdge * 0.72
-                    );
-
+                const size = Math.floor(
+                    minEdge * 0.72
+                );
 
                 return {
-                    width:
-                        Math.min(
-                            size,
-                            340
-                        ),
-
-                    height:
-                        Math.min(
-                            size,
-                            340
-                        )
+                    width: Math.min(size, 340),
+                    height: Math.min(size, 340)
                 };
             },
 
-
-            /*
-             * Vista cuadrada.
-             */
-
             aspectRatio: 1.0,
-
-
-            /*
-             * Permite lectura incluso si
-             * el navegador invierte la cámara.
-             */
 
             disableFlip: false,
 
-
-            /*
-             * Intentamos conseguir una
-             * imagen de cámara con buena
-             * resolución.
-             */
-
             videoConstraints: {
+
+                facingMode: {
+                    ideal: "environment"
+                },
 
                 width: {
                     ideal: 1280
@@ -1077,7 +675,9 @@ async function iniciarScanner() {
                 height: {
                     ideal: 720
                 }
+
             }
+
         };
 
 
@@ -1091,51 +691,33 @@ async function iniciarScanner() {
 
             qrDetectado,
 
-            () => {
-                /*
-                 * No hacemos nada con los
-                 * frames donde todavía no
-                 * se detectó un QR.
-                 */
+            error => {
+                // Los errores de lectura individuales
+                // se ignoran para evitar mensajes molestos.
             }
+
         );
 
 
-        btnIniciar.disabled =
-            true;
+        scannerActivo = true;
 
-        btnDetener.disabled =
-            false;
+        actualizarBotonesScanner(true);
 
 
         resultado.className =
-            "resultado";
-
+            "resultado resultado-info";
 
         resultado.innerHTML = `
-            <div class="resultado-icon">
-                <svg viewBox="0 0 24 24" fill="none">
-                    <circle
-                        cx="12"
-                        cy="12"
-                        r="8"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                    />
-                    <circle
-                        cx="12"
-                        cy="12"
-                        r="2"
-                        fill="currentColor"
-                    />
-                </svg>
+            <div class="scanner-status active">
+                <span class="status-dot"></span>
+                Cámara trasera activa
             </div>
 
-            <div>
-                <strong>Cámara activa</strong>
-                <span>Apuntá al código QR para registrar el ingreso.</span>
-            </div>
+            <span>
+                Apuntá el QR dentro del marco.
+            </span>
         `;
+
 
     } catch (error) {
 
@@ -1145,195 +727,91 @@ async function iniciarScanner() {
         );
 
 
-        scanner = null;
+        scannerActivo = false;
 
-
-        btnIniciar.disabled =
-            false;
-
-        btnDetener.disabled =
-            true;
+        actualizarBotonesScanner(false);
 
 
         resultado.className =
-            "resultado error";
-
+            "resultado resultado-error";
 
         resultado.innerHTML = `
-            <div class="resultado-icon">
-                <svg viewBox="0 0 24 24" fill="none">
-                    <path
-                        d="M12 9v4"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                    />
-                    <circle
-                        cx="12"
-                        cy="16"
-                        r="1"
-                        fill="currentColor"
-                    />
-                    <path
-                        d="M10.3 4.7 3.4 16.6A2 2 0 0 0 5.1 19.5h13.8a2 2 0 0 0 1.7-2.9L13.7 4.7a2 2 0 0 0-3.4 0Z"
-                        stroke="currentColor"
-                        stroke-width="1.6"
-                        stroke-linejoin="round"
-                    />
-                </svg>
-            </div>
-
-            <div>
-                <strong>No se pudo iniciar la cámara</strong>
-                <span>Verificá los permisos del navegador.</span>
-            </div>
+            <strong>No se pudo iniciar la cámara.</strong>
+            <br>
+            Verificá los permisos de cámara del navegador.
         `;
 
-
-        mostrarToast(
-            "Cámara no disponible",
-            "Permití el acceso a la cámara e intentá nuevamente.",
-            "error"
-        );
     }
 }
 
 
-/* =========================================================
-   QR DETECTADO
-========================================================= */
+// ============================================================
+// QR DETECTADO
+// ============================================================
 
-async function qrDetectado(
-    textoQR
-) {
-
-    /*
-     * Evita que html5-qrcode
-     * procese decenas de veces
-     * el mismo QR.
-     */
+async function qrDetectado(textoQR) {
 
     if (procesandoQR) {
         return;
     }
 
 
-    const ahora =
-        Date.now();
+    const token = textoQR.trim();
+
+    const ahora = Date.now();
 
 
+    // Evita procesar el mismo QR varias veces
     if (
-        textoQR === ultimoQRDetectado &&
+        token === ultimoQRDetectado &&
         ahora - ultimoQRDetectadoEn < 2500
     ) {
+
         return;
     }
 
 
-    ultimoQRDetectado =
-        textoQR;
+    ultimoQRDetectado = token;
 
-    ultimoQRDetectadoEn =
-        ahora;
+    ultimoQRDetectadoEn = ahora;
+
+
+    // Validar UUID
+    const uuidRegex =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+
+    if (!uuidRegex.test(token)) {
+
+        mostrarResultadoScanner(
+            "QR no válido",
+            "El código detectado no pertenece al sistema.",
+            "error"
+        );
+
+        return;
+    }
 
 
     procesandoQR = true;
 
 
-    const resultado =
-        document.getElementById("resultado");
-
-
-    resultado.className =
-        "resultado loading";
-
-
-    resultado.innerHTML = `
-        <div class="resultado-icon">
-            <svg viewBox="0 0 24 24" fill="none">
-                <circle
-                    cx="12"
-                    cy="12"
-                    r="8"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                />
-                <path
-                    d="M12 8v4l2.5 2"
-                    stroke="currentColor"
-                    stroke-width="1.7"
-                    stroke-linecap="round"
-                />
-            </svg>
-        </div>
-
-        <div>
-            <strong>Verificando QR...</strong>
-            <span>Consultando autorización de acceso.</span>
-        </div>
-    `;
+    mostrarResultadoScanner(
+        "Verificando QR...",
+        "Espere un momento.",
+        "loading"
+    );
 
 
     try {
 
-        const token =
-            textoQR.trim();
-
-
-        /*
-         * Primera validación local.
-         * Evita enviar basura a Supabase.
-         */
-
-        if (!esUUID(token)) {
-
-            resultado.className =
-                "resultado error";
-
-
-            resultado.innerHTML = `
-                <div class="resultado-icon">
-                    <svg viewBox="0 0 24 24" fill="none">
-                        <path
-                            d="M12 9v4"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                        />
-                        <circle
-                            cx="12"
-                            cy="16"
-                            r="1"
-                            fill="currentColor"
-                        />
-                    </svg>
-                </div>
-
-                <div>
-                    <strong>QR no válido</strong>
-                    <span>El código detectado no pertenece al sistema.</span>
-                </div>
-            `;
-
-
-            return;
-        }
-
-
-        /*
-         * Consumir QR mediante la función
-         * RPC de Supabase.
-         */
-
-        const {
-            data,
-            error
-        } = await supabaseClient.rpc(
-            "consumir_qr",
-            {
-                p_token: token
-            }
-        );
+        const { data, error } =
+            await supabaseClient.rpc(
+                "consumir_qr",
+                {
+                    p_token: token
+                }
+            );
 
 
         if (error) {
@@ -1341,55 +819,24 @@ async function qrDetectado(
         }
 
 
-        /* -----------------------------------------
-           INGRESO AUTORIZADO
-        ----------------------------------------- */
+        // ====================================================
+        // INGRESO AUTORIZADO
+        // ====================================================
 
-        if (data?.ok) {
+        if (data && data.ok) {
 
-            resultado.className =
-                "resultado success";
-
-
-            resultado.innerHTML = `
-                <div class="resultado-icon">
-                    <svg viewBox="0 0 24 24" fill="none">
-                        <path
-                            d="m5 12 4 4L19 6"
-                            stroke="currentColor"
-                            stroke-width="2.2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        />
-                    </svg>
-                </div>
-
-                <div>
-                    <strong>Ingreso autorizado</strong>
-                    <span>
-                        DNI:
-                        <strong>${escaparHTML(data.dni)}</strong>
-                    </span>
-                </div>
-            `;
-
-
-            mostrarToast(
-                "Ingreso autorizado",
-                `DNI ${data.dni} registrado correctamente.`
+            mostrarResultadoScanner(
+                "¡INGRESO AUTORIZADO!",
+                `DNI: ${data.dni}`,
+                "success"
             );
 
 
-            /*
-             * Al ser un QR válido y consumido,
-             * detenemos el scanner.
-             */
-
+            // Detener cámara después de validar
             await detenerScanner();
 
 
             await actualizarDashboard();
-
             await cargarRegistros();
 
 
@@ -1397,264 +844,200 @@ async function qrDetectado(
         }
 
 
-        /* -----------------------------------------
-           QR YA UTILIZADO / INVÁLIDO
-        ----------------------------------------- */
+        // ====================================================
+        // QR YA UTILIZADO / INVÁLIDO
+        // ====================================================
 
-        resultado.className =
-            "resultado error";
-
-
-        const mensaje =
-            data?.mensaje ||
-            "El QR no pudo ser utilizado.";
+        mostrarResultadoScanner(
+            "ACCESO DENEGADO",
+            data?.mensaje || "QR no válido.",
+            "error"
+        );
 
 
-        resultado.innerHTML = `
-            <div class="resultado-icon">
-                <svg viewBox="0 0 24 24" fill="none">
-                    <path
-                        d="M12 9v4"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                    />
-                    <circle
-                        cx="12"
-                        cy="16"
-                        r="1"
-                        fill="currentColor"
-                    />
-                </svg>
-            </div>
-
-            <div>
-                <strong>${escaparHTML(mensaje)}</strong>
-
-                ${
-                    data?.dni
-                        ? `
-                            <span>
-                                DNI:
-                                ${escaparHTML(data.dni)}
-                            </span>
-                          `
-                        : `
-                            <span>
-                                Intentá nuevamente con otro código.
-                            </span>
-                          `
-                }
-            </div>
-        `;
-
-
-        /*
-         * Si el QR ya fue utilizado,
-         * detenemos la cámara.
-         *
-         * Si simplemente fue un QR inválido,
-         * dejamos la cámara funcionando para
-         * poder seguir buscando.
-         */
-
-        if (
-            mensaje
-                .toLowerCase()
-                .includes("ya fue utilizado")
-        ) {
-
-            await detenerScanner();
-
-        }
+        // Dejamos la cámara funcionando para poder
+        // escanear otro QR inmediatamente.
 
 
     } catch (error) {
 
         console.error(
-            "Error procesando QR:",
+            "Error validando QR:",
             error
         );
 
 
-        resultado.className =
-            "resultado error";
-
-
-        resultado.innerHTML = `
-            <div class="resultado-icon">
-                <svg viewBox="0 0 24 24" fill="none">
-                    <path
-                        d="M12 9v4"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                    />
-                    <circle
-                        cx="12"
-                        cy="16"
-                        r="1"
-                        fill="currentColor"
-                    />
-                </svg>
-            </div>
-
-            <div>
-                <strong>Error de conexión</strong>
-                <span>
-                    No fue posible verificar el código.
-                </span>
-            </div>
-        `;
-
-
-        mostrarToast(
-            "Error",
-            "No se pudo consultar el QR.",
+        mostrarResultadoScanner(
+            "ERROR",
+            "No se pudo verificar el QR.",
             "error"
         );
 
     } finally {
-
-        /*
-         * Liberamos el bloqueo.
-         */
 
         procesandoQR = false;
     }
 }
 
 
-/* =========================================================
-   DETENER SCANNER
-========================================================= */
+// ============================================================
+// DETENER SCANNER
+// ============================================================
 
 async function detenerScanner() {
 
-    const btnIniciar =
+    if (!scanner) {
+
+        scannerActivo = false;
+
+        actualizarBotonesScanner(false);
+
+        return;
+    }
+
+
+    try {
+
+        if (scannerActivo) {
+
+            await scanner.stop();
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Error deteniendo scanner:",
+            error
+        );
+
+    }
+
+
+    try {
+
+        await scanner.clear();
+
+    } catch (error) {
+
+        console.warn(
+            "Error limpiando scanner:",
+            error
+        );
+    }
+
+
+    scanner = null;
+
+    scannerActivo = false;
+
+    actualizarBotonesScanner(false);
+
+
+    const reader =
+        document.getElementById("reader");
+
+    if (reader) {
+        reader.innerHTML = "";
+    }
+}
+
+
+// ============================================================
+// BOTONES DEL SCANNER
+// ============================================================
+
+function actualizarBotonesScanner(activo) {
+
+    const iniciar =
         document.getElementById("iniciarScanner");
 
-    const btnDetener =
+    const detener =
         document.getElementById("detenerScanner");
+
+
+    if (iniciar) {
+        iniciar.disabled = activo;
+    }
+
+    if (detener) {
+        detener.disabled = !activo;
+    }
+}
+
+
+// ============================================================
+// RESULTADO SCANNER
+// ============================================================
+
+function mostrarResultadoScanner(
+    titulo,
+    mensaje,
+    tipo
+) {
 
     const resultado =
         document.getElementById("resultado");
 
 
-    if (scanner) {
-
-        try {
-
-            await scanner.stop();
-
-        } catch (error) {
-
-            console.warn(
-                "Error deteniendo scanner:",
-                error
-            );
-        }
+    resultado.className =
+        `resultado resultado-${tipo}`;
 
 
-        try {
+    let icono = "✓";
 
-            await scanner.clear();
+    if (tipo === "error") {
+        icono = "✕";
+    }
 
-        } catch (error) {
-
-            console.warn(
-                "Error limpiando scanner:",
-                error
-            );
-        }
-
-
-        scanner = null;
+    if (tipo === "loading") {
+        icono = "⟳";
     }
 
 
-    btnIniciar.disabled =
-        false;
+    resultado.innerHTML = `
 
-    btnDetener.disabled =
-        true;
+        <div class="resultado-icon">
+            ${icono}
+        </div>
 
+        <div class="resultado-contenido">
 
-    /*
-     * Limpiamos el área de cámara.
-     */
+            <strong>
+                ${escapeHTML(titulo)}
+            </strong>
 
-    const reader =
-        document.getElementById("reader");
+            <span>
+                ${escapeHTML(mensaje)}
+            </span>
 
-    reader.innerHTML = "";
+        </div>
 
-
-    /*
-     * Si no hay un mensaje de éxito/error
-     * importante, mostramos estado detenido.
-     */
-
-    if (
-        !resultado.classList.contains("success") &&
-        !resultado.classList.contains("error")
-    ) {
-
-        resultado.className =
-            "resultado";
-
-
-        resultado.innerHTML = `
-            <div class="resultado-icon">
-                <svg viewBox="0 0 24 24" fill="none">
-                    <rect
-                        x="6"
-                        y="6"
-                        width="12"
-                        height="12"
-                        rx="2"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                    />
-                </svg>
-            </div>
-
-            <div>
-                <strong>Escáner detenido</strong>
-                <span>Presioná iniciar para activar la cámara.</span>
-            </div>
-        `;
-    }
+    `;
 }
 
 
-/* =========================================================
-   CARGAR REGISTROS
-========================================================= */
+// ============================================================
+// CARGAR REGISTROS
+// ============================================================
 
 async function cargarRegistros() {
 
     const tabla =
         document.getElementById("tablaRegistros");
 
-    const contador =
-        document.getElementById("contadorRegistros");
-
 
     try {
 
-        const {
-            data,
-            error
-        } = await supabaseClient
-            .from("ingresos")
-            .select("*")
-            .order(
-                "generado_en",
-                {
-                    ascending: false
-                }
-            );
+        const { data, error } =
+            await supabaseClient
+                .from("ingresos")
+                .select("*")
+                .order(
+                    "generado_en",
+                    {
+                        ascending: false
+                    }
+                );
 
 
         if (error) {
@@ -1662,22 +1045,11 @@ async function cargarRegistros() {
         }
 
 
-        contador.textContent =
-            `${data.length} ${
-                data.length === 1
-                    ? "registro"
-                    : "registros"
-            }`;
-
-
-        if (!data.length) {
+        if (!data || data.length === 0) {
 
             tabla.innerHTML = `
                 <tr>
-                    <td
-                        colspan="5"
-                        class="empty-table"
-                    >
+                    <td colspan="6" class="tabla-vacia">
                         No hay registros todavía.
                     </td>
                 </tr>
@@ -1687,151 +1059,106 @@ async function cargarRegistros() {
         }
 
 
-        tabla.innerHTML =
-            data.map(
-                registro => {
+        tabla.innerHTML = data.map(registro => {
 
-                    const ingresado =
-                        registro.estado === "ingresado";
+            const fechaGenerado =
+                formatearFecha(
+                    registro.generado_en
+                );
 
-
-                    return `
-                        <tr>
-
-                            <td>
-                                ${escaparHTML(
-                                    registro.dni
-                                )}
-                            </td>
+            const fechaIngreso =
+                registro.ingresado_en
+                    ? formatearFecha(
+                        registro.ingresado_en
+                    )
+                    : "—";
 
 
-                            <td>
-
-                                <span
-                                    class="status-pill ${
-                                        ingresado
-                                            ? "status-entered"
-                                            : "status-pending"
-                                    }"
-                                >
-                                    ${
-                                        ingresado
-                                            ? "Ingresado"
-                                            : "Pendiente"
-                                    }
-                                </span>
-
-                            </td>
+            const estado =
+                registro.estado === "ingresado"
+                    ? `
+                        <span class="badge badge-success">
+                            Ingresado
+                        </span>
+                    `
+                    : `
+                        <span class="badge badge-warning">
+                            Pendiente
+                        </span>
+                    `;
 
 
-                            <td>
-                                ${formatearFecha(
-                                    registro.generado_en
-                                )}
-                            </td>
+            return `
 
+                <tr>
 
-                            <td>
-                                ${
-                                    registro.ingresado_en
-                                        ? formatearFecha(
-                                            registro.ingresado_en
-                                        )
-                                        : "-"
-                                }
-                            </td>
+                    <td>
+                        <strong>
+                            ${escapeHTML(registro.dni)}
+                        </strong>
+                    </td>
 
+                    <td>
+                        <code>
+                            ${escapeHTML(registro.token)}
+                        </code>
+                    </td>
 
-                            <td>
+                    <td>
+                        ${fechaGenerado}
+                    </td>
 
-                                <div
-                                    style="
-                                        display:flex;
-                                        gap:6px;
-                                    "
-                                >
+                    <td>
+                        ${fechaIngreso}
+                    </td>
 
+                    <td>
+                        ${estado}
+                    </td>
+
+                    <td>
+
+                        <div class="table-actions">
+
+                            ${
+                                registro.estado === "pendiente"
+                                ?
+                                `
                                     <button
-                                        type="button"
-                                        class="btn-delete"
-                                        title="Compartir QR"
+                                        class="btn btn-small btn-secondary"
                                         onclick="enviarWhatsAppRegistro(
-                                            '${escaparHTML(
-                                                registro.dni
-                                            )}',
+                                            '${registro.dni}',
                                             '${registro.token}'
                                         )"
+                                        title="Compartir QR"
                                     >
-
-                                        <svg
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                        >
-                                            <path
-                                                d="M20 4 10 14"
-                                                stroke="currentColor"
-                                                stroke-width="1.8"
-                                                stroke-linecap="round"
-                                            />
-                                            <path
-                                                d="m20 4-6 16-4-6-6-4 16-6Z"
-                                                stroke="currentColor"
-                                                stroke-width="1.8"
-                                                stroke-linejoin="round"
-                                            />
-                                        </svg>
-
+                                        WhatsApp
                                     </button>
+                                `
+                                :
+                                ""
+                            }
 
+                            <button
+                                class="btn btn-small btn-danger"
+                                onclick="eliminarRegistro(
+                                    '${registro.id}'
+                                )"
+                                title="Eliminar"
+                            >
+                                Eliminar
+                            </button>
 
-                                    <button
-                                        type="button"
-                                        class="btn-delete"
-                                        title="Eliminar registro"
-                                        onclick="eliminarRegistro(
-                                            '${registro.id}',
-                                            '${escaparHTML(
-                                                registro.dni
-                                            )}'
-                                        )"
-                                    >
+                        </div>
 
-                                        <svg
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                        >
-                                            <path
-                                                d="M4 7h16"
-                                                stroke="currentColor"
-                                                stroke-width="1.8"
-                                                stroke-linecap="round"
-                                            />
+                    </td>
 
-                                            <path
-                                                d="M9 7V4h6v3"
-                                                stroke="currentColor"
-                                                stroke-width="1.8"
-                                            />
+                </tr>
 
-                                            <path
-                                                d="m7 7 1 13h8l1-13"
-                                                stroke="currentColor"
-                                                stroke-width="1.8"
-                                                stroke-linejoin="round"
-                                            />
+            `;
 
-                                        </svg>
+        }).join("");
 
-                                    </button>
-
-                                </div>
-
-                            </td>
-
-                        </tr>
-                    `;
-                }
-            ).join("");
 
     } catch (error) {
 
@@ -1841,17 +1168,10 @@ async function cargarRegistros() {
         );
 
 
-        contador.textContent =
-            "Error";
-
-
         tabla.innerHTML = `
             <tr>
-                <td
-                    colspan="5"
-                    class="empty-table"
-                >
-                    No fue posible cargar los registros.
+                <td colspan="6" class="tabla-vacia">
+                    Error cargando registros.
                 </td>
             </tr>
         `;
@@ -1859,19 +1179,15 @@ async function cargarRegistros() {
 }
 
 
-/* =========================================================
-   ELIMINAR REGISTRO
-========================================================= */
+// ============================================================
+// ELIMINAR REGISTRO
+// ============================================================
 
-async function eliminarRegistro(
-    id,
-    dni
-) {
+async function eliminarRegistro(id) {
 
-    const confirmar =
-        confirm(
-            `¿Querés eliminar el registro del DNI ${dni}?`
-        );
+    const confirmar = confirm(
+        "¿Seguro que querés eliminar este registro?"
+    );
 
 
     if (!confirmar) {
@@ -1881,12 +1197,11 @@ async function eliminarRegistro(
 
     try {
 
-        const {
-            error
-        } = await supabaseClient
-            .from("ingresos")
-            .delete()
-            .eq("id", id);
+        const { error } =
+            await supabaseClient
+                .from("ingresos")
+                .delete()
+                .eq("id", id);
 
 
         if (error) {
@@ -1894,58 +1209,16 @@ async function eliminarRegistro(
         }
 
 
-        /*
-         * Si acabamos de eliminar el QR
-         * que estaba mostrado, limpiamos
-         * el generador.
-         */
-
-        if (
-            ultimoDniGenerado === dni
-        ) {
-
-            ultimoDniGenerado =
-                null;
-
-            ultimoTokenGenerado =
-                null;
-
-
-            document.getElementById(
-                "qrcode"
-            ).innerHTML = "";
-
-
-            document.getElementById(
-                "qrResult"
-            ).classList.add("hidden");
-
-
-            document.getElementById(
-                "btnCompartir"
-            ).disabled = true;
-
-
-            document.getElementById(
-                "btnDescargar"
-            ).disabled = true;
-
-
-            document.getElementById(
-                "btnImprimir"
-            ).disabled = true;
-        }
-
-
-        mostrarToast(
-            "Registro eliminado",
-            `El DNI ${dni} fue eliminado correctamente.`
-        );
-
-
         await actualizarDashboard();
 
         await cargarRegistros();
+
+
+        mostrarNotificacion(
+            "Registro eliminado.",
+            "success"
+        );
+
 
     } catch (error) {
 
@@ -1955,10 +1228,110 @@ async function eliminarRegistro(
         );
 
 
-        mostrarToast(
-            "Error",
-            "No fue posible eliminar el registro.",
+        mostrarNotificacion(
+            "No se pudo eliminar el registro.",
             "error"
         );
     }
+}
+
+
+// ============================================================
+// UTILIDADES
+// ============================================================
+
+function formatearFecha(fecha) {
+
+    if (!fecha) {
+        return "—";
+    }
+
+
+    return new Date(fecha).toLocaleString(
+        "es-AR",
+        {
+            dateStyle: "short",
+            timeStyle: "short"
+        }
+    );
+}
+
+
+function escapeHTML(texto) {
+
+    const div =
+        document.createElement("div");
+
+    div.textContent = texto;
+
+    return div.innerHTML;
+}
+
+
+// ============================================================
+// NOTIFICACIONES
+// ============================================================
+
+function mostrarNotificacion(
+    mensaje,
+    tipo = "success"
+) {
+
+    let contenedor =
+        document.getElementById(
+            "notificaciones"
+        );
+
+
+    if (!contenedor) {
+
+        contenedor =
+            document.createElement("div");
+
+        contenedor.id =
+            "notificaciones";
+
+        document.body.appendChild(
+            contenedor
+        );
+    }
+
+
+    const notificacion =
+        document.createElement("div");
+
+
+    notificacion.className =
+        `notificacion notificacion-${tipo}`;
+
+
+    notificacion.innerHTML = `
+        <span class="notificacion-icon">
+            ${tipo === "success" ? "✓" : "!"}
+        </span>
+
+        <span>
+            ${escapeHTML(mensaje)}
+        </span>
+    `;
+
+
+    contenedor.appendChild(
+        notificacion
+    );
+
+
+    setTimeout(() => {
+
+        notificacion.classList.add(
+            "ocultar"
+        );
+
+        setTimeout(() => {
+
+            notificacion.remove();
+
+        }, 300);
+
+    }, 3000);
 }
