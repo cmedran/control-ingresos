@@ -1,305 +1,561 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-
     <meta charset="UTF-8">
 
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
     >
 
-    <title>Control de Acceso QR</title>
+    <meta name="theme-color" content="#0f172a">
 
-    <link
-        rel="stylesheet"
-        href="styles.css"
-    >
+    <title>Control de Acceso | QR</title>
 
-    <!-- SUPABASE -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <!-- QR GENERATOR -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-    <!-- QR SCANNER -->
-    <script src="https://unpkg.com/html5-qrcode"></script>
-
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
 
-    <header class="header">
+    <!-- =========================
+         HEADER
+    ========================== -->
+    <header class="topbar">
 
-        <div>
-            <h1>Control de Acceso</h1>
-            <p>Sistema de ingreso mediante código QR</p>
+        <div class="brand">
+            <div class="brand-icon">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path
+                        d="M4 4h6v6H4V4Zm10 0h6v6h-6V4ZM4 14h6v6H4v-6Zm10 0h2v2h-2v-2Zm4 0h2v2h-2v-2Zm-4 4h2v2h-2v-2Zm4 0h2v2h-2v-2Z"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linejoin="round"
+                    />
+                </svg>
+            </div>
+
+            <div>
+                <h1>Control de Acceso</h1>
+                <span>Gestión de ingresos mediante QR</span>
+            </div>
+        </div>
+
+        <div class="system-status">
+            <span class="status-dot"></span>
+            Sistema operativo
         </div>
 
     </header>
 
 
+    <!-- =========================
+         CONTENIDO PRINCIPAL
+    ========================== -->
     <main class="container">
 
-
-        <!-- ================================================= -->
-        <!-- DASHBOARD -->
-        <!-- ================================================= -->
-
+        <!-- =========================
+             DASHBOARD
+        ========================== -->
         <section class="dashboard">
 
-            <div class="card">
+            <article class="stat-card">
+                <div class="stat-icon blue">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <rect
+                            x="4"
+                            y="4"
+                            width="16"
+                            height="16"
+                            rx="3"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                        />
+                        <path
+                            d="M8 8h3v3H8V8Zm5 0h3v3h-3V8ZM8 13h3v3H8v-3Zm5 0h3v3h-3v-3Z"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                        />
+                    </svg>
+                </div>
 
-                <span class="card-title">
-                    QRs generados
-                </span>
-
-                <strong id="totalGenerados">
-                    0
-                </strong>
-
-            </div>
+                <div class="stat-content">
+                    <span class="stat-label">QR GENERADOS</span>
+                    <strong id="totalGenerados">0</strong>
+                    <small>Total de accesos creados</small>
+                </div>
+            </article>
 
 
-            <div class="card">
+            <article class="stat-card">
+                <div class="stat-icon green">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path
+                            d="M20 6 9 17l-5-5"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
+                </div>
 
-                <span class="card-title">
-                    Ingresos
-                </span>
-
-                <strong id="totalIngresos">
-                    0
-                </strong>
-
-            </div>
+                <div class="stat-content">
+                    <span class="stat-label">INGRESOS</span>
+                    <strong id="totalIngresos">0</strong>
+                    <small>QR utilizados correctamente</small>
+                </div>
+            </article>
 
 
-            <div class="card">
+            <article class="stat-card">
+                <div class="stat-icon orange">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <circle
+                            cx="12"
+                            cy="12"
+                            r="8"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                        />
+                        <path
+                            d="M12 8v4l2.5 2"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                        />
+                    </svg>
+                </div>
 
-                <span class="card-title">
-                    Faltantes
-                </span>
-
-                <strong id="totalFaltantes">
-                    0
-                </strong>
-
-            </div>
+                <div class="stat-content">
+                    <span class="stat-label">PENDIENTES</span>
+                    <strong id="totalFaltantes">0</strong>
+                    <small>QR todavía no utilizados</small>
+                </div>
+            </article>
 
         </section>
 
 
-        <!-- ================================================= -->
-        <!-- GENERAR QR -->
-        <!-- ================================================= -->
+        <!-- =========================
+             GENERADOR + ESCÁNER
+        ========================== -->
+        <section class="main-grid">
 
-        <section class="panel">
+            <!-- =====================
+                 GENERADOR
+            ====================== -->
+            <article class="panel">
 
-            <div class="panel-header">
+                <div class="panel-header">
 
-                <div>
+                    <div>
+                        <span class="eyebrow">ACCESOS</span>
+                        <h2>Generar código QR</h2>
+                        <p>Creá un acceso único asociado a un DNI.</p>
+                    </div>
 
-                    <h2>Generar código QR</h2>
-
-                    <p>
-                        Ingresá solamente el DNI de la persona.
-                    </p>
+                    <div class="panel-number">01</div>
 
                 </div>
 
-            </div>
 
-
-            <div class="generador">
-
-                <div class="formulario">
+                <div class="form-group">
 
                     <label for="dni">
                         DNI
                     </label>
 
-                    <input
-                        type="text"
-                        id="dni"
-                        placeholder="Ingresá el DNI"
-                        inputmode="numeric"
-                        autocomplete="off"
-                    >
+                    <div class="input-wrapper">
 
-                    <button
-                        class="btn-primary"
-                        onclick="generarQR()"
-                    >
-                        Generar QR
-                    </button>
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path
+                                d="M4 6h16v12H4V6Z"
+                                stroke="currentColor"
+                                stroke-width="1.7"
+                                stroke-linejoin="round"
+                            />
+                            <circle
+                                cx="9"
+                                cy="11"
+                                r="2"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                            />
+                            <path
+                                d="M13 10h4M13 13h3"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                stroke-linecap="round"
+                            />
+                        </svg>
+
+                        <input
+                            type="text"
+                            id="dni"
+                            inputmode="numeric"
+                            autocomplete="off"
+                            maxlength="12"
+                            placeholder="Ingresá el DNI"
+                        >
+
+                    </div>
 
                 </div>
 
 
-                <div class="qr-container">
+                <button
+                    type="button"
+                    id="btnGenerar"
+                    class="btn btn-primary btn-full"
+                    onclick="generarQR()"
+                >
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path
+                            d="M12 5v14M5 12h14"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                        />
+                    </svg>
 
-                    <div id="qrcode"></div>
+                    Generar QR
+                </button>
+
+
+                <!-- QR -->
+                <div
+                    id="qrResult"
+                    class="qr-result hidden"
+                >
+
+                    <div class="qr-result-header">
+                        <div>
+                            <span class="eyebrow">CÓDIGO GENERADO</span>
+                            <h3>Acceso listo</h3>
+                        </div>
+
+                        <span class="badge badge-success">
+                            Válido
+                        </span>
+                    </div>
+
+
+                    <div class="qr-box">
+
+                        <div id="qrcode"></div>
+
+                    </div>
+
 
                     <div
                         id="qrInfo"
                         class="qr-info"
-                    >
-                        Todavía no se generó ningún QR.
-                    </div>
+                    ></div>
 
-                    <div class="qr-buttons">
+
+                    <div class="qr-actions">
 
                         <button
+                            type="button"
                             id="btnCompartir"
-                            class="btn-share"
+                            class="btn btn-secondary"
                             onclick="compartirWhatsApp()"
                             disabled
                         >
-                            📤 Compartir QR
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path
+                                    d="M20 4 10 14"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                />
+                                <path
+                                    d="m20 4-6 16-4-6-6-4 16-6Z"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+
+                            WhatsApp
                         </button>
 
+
                         <button
+                            type="button"
                             id="btnDescargar"
-                            class="btn-secondary"
+                            class="btn btn-secondary"
                             onclick="descargarQR()"
                             disabled
                         >
-                            ⬇ Descargar
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path
+                                    d="M12 4v11"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                />
+                                <path
+                                    d="m7 11 5 5 5-5"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                                <path
+                                    d="M5 20h14"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                    stroke-linecap="round"
+                                />
+                            </svg>
+
+                            Descargar
                         </button>
 
+
                         <button
+                            type="button"
                             id="btnImprimir"
-                            class="btn-secondary"
+                            class="btn btn-secondary"
                             onclick="imprimirQR()"
                             disabled
                         >
-                            🖨 Imprimir
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path
+                                    d="M6 9V4h12v5"
+                                    stroke="currentColor"
+                                    stroke-width="1.7"
+                                    stroke-linejoin="round"
+                                />
+                                <path
+                                    d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
+                                    stroke="currentColor"
+                                    stroke-width="1.7"
+                                />
+                                <path
+                                    d="M6 14h12v7H6v-7Z"
+                                    stroke="currentColor"
+                                    stroke-width="1.7"
+                                />
+                            </svg>
+
+                            Imprimir
                         </button>
 
                     </div>
 
                 </div>
 
-            </div>
-
-        </section>
+            </article>
 
 
-        <!-- ================================================= -->
-        <!-- ESCANEAR QR -->
-        <!-- ================================================= -->
+            <!-- =====================
+                 ESCÁNER
+            ====================== -->
+            <article class="panel scanner-panel">
 
-        <section class="panel">
+                <div class="panel-header">
 
-            <div class="panel-header">
+                    <div>
+                        <span class="eyebrow">CONTROL</span>
+                        <h2>Leer código QR</h2>
+                        <p>Escaneá el acceso para registrar el ingreso.</p>
+                    </div>
 
-                <div>
-
-                    <h2>Control de ingreso</h2>
-
-                    <p>
-                        Escaneá el código QR de la persona.
-                    </p>
+                    <div class="panel-number">02</div>
 
                 </div>
 
-            </div>
 
+                <div class="scanner-shell">
 
-            <div class="scanner-container">
+                    <div id="reader"></div>
 
-                <div
-                    id="reader"
-                    class="reader"
-                ></div>
+                    <div
+                        id="scanOverlay"
+                        class="scan-overlay"
+                    >
+                        <div class="scan-frame">
+                            <span class="corner top-left"></span>
+                            <span class="corner top-right"></span>
+                            <span class="corner bottom-left"></span>
+                            <span class="corner bottom-right"></span>
+
+                            <div class="scan-line"></div>
+                        </div>
+
+                        <div class="scan-hint">
+                            Colocá el QR dentro del recuadro
+                        </div>
+                    </div>
+
+                </div>
+
 
                 <div
                     id="resultado"
                     class="resultado"
                 >
-                    Esperando escaneo...
+                    <div class="resultado-icon">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path
+                                d="M12 8v4"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                            />
+                            <circle
+                                cx="12"
+                                cy="16"
+                                r="1"
+                                fill="currentColor"
+                            />
+                            <path
+                                d="M10.3 4.7 3.4 16.6A2 2 0 0 0 5.1 19.5h13.8a2 2 0 0 0 1.7-2.9L13.7 4.7a2 2 0 0 0-3.4 0Z"
+                                stroke="currentColor"
+                                stroke-width="1.6"
+                                stroke-linejoin="round"
+                            />
+                        </svg>
+                    </div>
+
+                    <div>
+                        <strong>Escáner detenido</strong>
+                        <span>Presioná iniciar para activar la cámara.</span>
+                    </div>
                 </div>
 
-                <button
-                    class="btn-primary"
-                    onclick="iniciarScanner()"
-                >
-                    📷 Iniciar cámara
-                </button>
 
-                <button
-                    class="btn-secondary"
-                    onclick="detenerScanner()"
-                >
-                    Detener cámara
-                </button>
+                <div class="scanner-actions">
 
-            </div>
+                    <button
+                        type="button"
+                        id="iniciarScanner"
+                        class="btn btn-primary"
+                        onclick="iniciarScanner()"
+                    >
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path
+                                d="M4 7h4l1.5-2h5L16 7h4v11H4V7Z"
+                                stroke="currentColor"
+                                stroke-width="1.7"
+                                stroke-linejoin="round"
+                            />
+                            <circle
+                                cx="12"
+                                cy="13"
+                                r="3"
+                                stroke="currentColor"
+                                stroke-width="1.7"
+                            />
+                        </svg>
+
+                        Iniciar cámara
+                    </button>
+
+
+                    <button
+                        type="button"
+                        id="detenerScanner"
+                        class="btn btn-danger"
+                        onclick="detenerScanner()"
+                        disabled
+                    >
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <rect
+                                x="6"
+                                y="6"
+                                width="12"
+                                height="12"
+                                rx="2"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                            />
+                        </svg>
+
+                        Detener
+                    </button>
+
+                </div>
+
+
+                <div class="scanner-tip">
+
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <circle
+                            cx="12"
+                            cy="12"
+                            r="9"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                        />
+                        <path
+                            d="M12 10v5"
+                            stroke="currentColor"
+                            stroke-width="1.7"
+                            stroke-linecap="round"
+                        />
+                        <circle
+                            cx="12"
+                            cy="7"
+                            r="1"
+                            fill="currentColor"
+                        />
+                    </svg>
+
+                    <span>
+                        Para una lectura más rápida, mantené el QR
+                        centrado y evitá reflejos sobre la pantalla.
+                    </span>
+
+                </div>
+
+            </article>
 
         </section>
 
 
-        <!-- ================================================= -->
-        <!-- REGISTROS -->
-        <!-- ================================================= -->
+        <!-- =========================
+             REGISTROS
+        ========================== -->
+        <section class="panel records-panel">
 
-        <section class="panel">
-
-            <div class="panel-header">
+            <div class="panel-header records-header">
 
                 <div>
-
-                    <h2>QR generados</h2>
-
-                    <p>
-                        Historial de códigos generados.
-                    </p>
-
+                    <span class="eyebrow">HISTORIAL</span>
+                    <h2>Registros de acceso</h2>
+                    <p>Administrá los códigos generados y sus estados.</p>
                 </div>
 
-                <button
-                    class="btn-secondary"
-                    onclick="cargarRegistros()"
-                >
-                    🔄 Actualizar
-                </button>
+                <div class="records-counter">
+                    <span id="contadorRegistros">0 registros</span>
+                </div>
 
             </div>
 
 
-            <div class="tabla-wrapper">
+            <div class="table-wrapper">
 
                 <table>
 
                     <thead>
-
                         <tr>
-
                             <th>DNI</th>
-
-                            <th>Estado</th>
-
-                            <th>Generado</th>
-
-                            <th>Ingreso</th>
-
-                            <th>Acciones</th>
-
+                            <th>ESTADO</th>
+                            <th>GENERADO</th>
+                            <th>INGRESO</th>
+                            <th>ACCIÓN</th>
                         </tr>
-
                     </thead>
 
                     <tbody id="tablaRegistros">
-
                         <tr>
-
-                            <td colspan="5">
-                                Cargando...
+                            <td colspan="5" class="empty-table">
+                                Cargando registros...
                             </td>
-
                         </tr>
-
                     </tbody>
 
                 </table>
@@ -308,12 +564,42 @@
 
         </section>
 
-
     </main>
 
 
+    <!-- =========================
+         TOAST
+    ========================== -->
+    <div
+        id="toast"
+        class="toast"
+        aria-live="polite"
+    >
+        <div id="toastIcon"></div>
+
+        <div>
+            <strong id="toastTitle"></strong>
+            <span id="toastMessage"></span>
+        </div>
+    </div>
+
+
+    <!-- =========================
+         LIBRERÍAS
+    ========================== -->
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- QR Generator -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- QR Scanner -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+
+    <!-- Aplicación -->
     <script src="app.js"></script>
 
 </body>
-
 </html>
