@@ -1,0 +1,682 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f6f8;
+    color: #222;
+}
+
+
+/* =========================================================
+   APP
+========================================================= */
+
+.app {
+    display: flex;
+    min-height: 100vh;
+}
+
+
+/* =========================================================
+   SIDEBAR
+========================================================= */
+
+.sidebar {
+    width: 240px;
+    background: #17202a;
+    color: white;
+    padding: 20px;
+    flex-shrink: 0;
+}
+
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 40px;
+}
+
+
+.logo-icon {
+    width: 48px;
+    height: 48px;
+    background: white;
+    color: #17202a;
+    border-radius: 10px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-weight: bold;
+}
+
+
+.logo h2 {
+    font-size: 20px;
+}
+
+
+.logo span {
+    font-size: 13px;
+    opacity: 0.7;
+}
+
+
+nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+
+.nav-btn {
+    width: 100%;
+    border: none;
+    background: transparent;
+    color: white;
+
+    padding: 13px 14px;
+
+    border-radius: 8px;
+
+    text-align: left;
+
+    cursor: pointer;
+
+    font-size: 14px;
+}
+
+
+.nav-btn:hover,
+.nav-btn.active {
+    background: #2c3e50;
+}
+
+
+/* =========================================================
+   MAIN
+========================================================= */
+
+.main {
+    flex: 1;
+    min-width: 0;
+}
+
+
+.topbar {
+    background: white;
+    padding: 25px 30px;
+    border-bottom: 1px solid #ddd;
+}
+
+
+.topbar h1 {
+    font-size: 25px;
+}
+
+
+.topbar p {
+    color: #777;
+    margin-top: 5px;
+}
+
+
+/* =========================================================
+   SECCIONES
+========================================================= */
+
+.seccion {
+    display: none;
+    padding: 30px;
+}
+
+
+.seccion.activa {
+    display: block;
+}
+
+
+.seccion > h2 {
+    margin-bottom: 20px;
+}
+
+
+/* =========================================================
+   CARDS
+========================================================= */
+
+.cards {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 20px;
+}
+
+
+.card {
+    background: white;
+
+    border-radius: 12px;
+
+    padding: 25px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 20px;
+
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+
+.card-icon {
+    width: 55px;
+    height: 55px;
+
+    border-radius: 10px;
+
+    background: #eef2f5;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 25px;
+}
+
+
+.card span {
+    display: block;
+
+    color: #777;
+
+    font-size: 14px;
+
+    margin-bottom: 6px;
+}
+
+
+.card strong {
+    font-size: 30px;
+}
+
+
+/* =========================================================
+   PANEL
+========================================================= */
+
+.panel {
+    background: white;
+
+    padding: 30px;
+
+    border-radius: 12px;
+
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+
+.panel h2 {
+    margin-bottom: 8px;
+}
+
+
+.descripcion {
+    color: #777;
+    margin-bottom: 25px;
+}
+
+
+.panel-header {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    margin-bottom: 20px;
+}
+
+
+/* =========================================================
+   FORMULARIO
+========================================================= */
+
+.form-group {
+    max-width: 450px;
+
+    margin-bottom: 20px;
+}
+
+
+.form-group label {
+    display: block;
+
+    font-weight: bold;
+
+    margin-bottom: 8px;
+}
+
+
+.form-group input {
+    width: 100%;
+
+    padding: 13px;
+
+    border: 1px solid #ccc;
+
+    border-radius: 7px;
+
+    font-size: 16px;
+
+    outline: none;
+}
+
+
+.form-group input:focus {
+    border-color: #34495e;
+}
+
+
+/* =========================================================
+   BOTONES
+========================================================= */
+
+button {
+    font-family: inherit;
+}
+
+
+.btn-primary,
+.btn-secondary,
+.btn-whatsapp,
+.btn-eliminar {
+    border: none;
+
+    border-radius: 7px;
+
+    padding: 11px 16px;
+
+    cursor: pointer;
+
+    font-weight: bold;
+
+    transition: 0.2s;
+}
+
+
+.btn-primary {
+    background: #17202a;
+    color: white;
+}
+
+
+.btn-primary:hover {
+    background: #2c3e50;
+}
+
+
+.btn-secondary {
+    background: #e9ecef;
+    color: #333;
+}
+
+
+.btn-secondary:hover {
+    background: #dfe3e6;
+}
+
+
+.btn-whatsapp {
+    background: #25d366;
+    color: white;
+}
+
+
+.btn-whatsapp:hover {
+    background: #1ebe5d;
+}
+
+
+.btn-eliminar {
+    background: #dc3545;
+    color: white;
+}
+
+
+.btn-eliminar:hover {
+    background: #bb2d3b;
+}
+
+
+/* =========================================================
+   QR
+========================================================= */
+
+.qr-container {
+    margin-top: 30px;
+
+    text-align: center;
+
+    border-top: 1px solid #eee;
+
+    padding-top: 30px;
+}
+
+
+.qr-container h3 {
+    margin-bottom: 10px;
+}
+
+
+.qr {
+    display: flex;
+
+    justify-content: center;
+
+    margin: 25px 0;
+}
+
+
+.qr canvas,
+.qr img {
+    max-width: 100%;
+}
+
+
+.qr-actions {
+    display: flex;
+
+    justify-content: center;
+
+    gap: 10px;
+
+    flex-wrap: wrap;
+}
+
+
+/* =========================================================
+   SCANNER
+========================================================= */
+
+.reader {
+    max-width: 500px;
+
+    margin: 25px auto;
+
+    overflow: hidden;
+
+    border-radius: 10px;
+}
+
+
+#reader video {
+    width: 100% !important;
+}
+
+
+.resultado {
+    max-width: 500px;
+
+    margin: 20px auto;
+
+    padding: 20px;
+
+    border-radius: 8px;
+
+    text-align: center;
+
+    font-weight: bold;
+}
+
+
+.resultado.exito {
+    background: #d1e7dd;
+
+    color: #0f5132;
+}
+
+
+.resultado.error {
+    background: #f8d7da;
+
+    color: #842029;
+}
+
+
+/* =========================================================
+   TABLA
+========================================================= */
+
+.table-container {
+    overflow-x: auto;
+}
+
+
+table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+
+th,
+td {
+    padding: 13px;
+
+    border-bottom: 1px solid #eee;
+
+    text-align: left;
+
+    white-space: nowrap;
+}
+
+
+th {
+    background: #f7f7f7;
+
+    font-size: 13px;
+
+    text-transform: uppercase;
+}
+
+
+.acciones {
+    display: flex;
+
+    gap: 7px;
+
+    flex-wrap: wrap;
+}
+
+
+.acciones button {
+    padding: 8px 10px;
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   ESTADOS
+========================================================= */
+
+.estado-ingresado {
+    display: inline-block;
+
+    background: #d1e7dd;
+
+    color: #0f5132;
+
+    padding: 5px 8px;
+
+    border-radius: 5px;
+
+    font-weight: bold;
+
+    font-size: 12px;
+}
+
+
+.estado-pendiente {
+    display: inline-block;
+
+    background: #fff3cd;
+
+    color: #664d03;
+
+    padding: 5px 8px;
+
+    border-radius: 5px;
+
+    font-weight: bold;
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   DASHBOARD INFO
+========================================================= */
+
+.dashboard-info {
+    background: white;
+
+    padding: 25px;
+
+    margin-top: 25px;
+
+    border-radius: 12px;
+}
+
+
+.dashboard-info h3 {
+    margin-bottom: 10px;
+}
+
+
+.dashboard-info p {
+    color: #666;
+
+    line-height: 1.6;
+}
+
+
+/* =========================================================
+   UTILIDADES
+========================================================= */
+
+.oculto {
+    display: none !important;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 800px) {
+
+    .app {
+        flex-direction: column;
+    }
+
+
+    .sidebar {
+        width: 100%;
+
+        padding: 12px;
+    }
+
+
+    .logo {
+        margin-bottom: 15px;
+    }
+
+
+    nav {
+        flex-direction: row;
+
+        overflow-x: auto;
+    }
+
+
+    .nav-btn {
+        white-space: nowrap;
+
+        width: auto;
+    }
+
+
+    .cards {
+        grid-template-columns: 1fr;
+    }
+
+
+    .seccion {
+        padding: 20px;
+    }
+
+
+    .panel {
+        padding: 20px;
+    }
+
+
+    .panel-header {
+        align-items: flex-start;
+
+        gap: 15px;
+
+        flex-direction: column;
+    }
+
+}
+
+
+/* =========================================================
+   IMPRESIÓN
+========================================================= */
+
+@media print {
+
+    body * {
+        visibility: hidden;
+    }
+
+
+    #contenedorQR,
+    #contenedorQR * {
+        visibility: visible;
+    }
+
+
+    #contenedorQR {
+        position: absolute;
+
+        left: 0;
+        top: 0;
+
+        width: 100%;
+
+        border: none;
+    }
+
+
+    .qr-actions {
+        display: none;
+    }
+
+}

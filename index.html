@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Control de Accesos QR</title>
+
+    <link
+        rel="stylesheet"
+        href="styles.css"
+    >
+
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            <div class="logo-icon">QR</div>
+            <div>
+                <h2>Control</h2>
+                <span>Accesos</span>
+            </div>
+        </div>
+
+
+        <nav>
+
+            <button
+                class="nav-btn active"
+                onclick="mostrarSeccion('dashboard')"
+            >
+                🏠 Dashboard
+            </button>
+
+            <button
+                class="nav-btn"
+                onclick="mostrarSeccion('generar')"
+            >
+                ➕ Generar QR
+            </button>
+
+            <button
+                class="nav-btn"
+                onclick="mostrarSeccion('escanear')"
+            >
+                📷 Escanear QR
+            </button>
+
+            <button
+                class="nav-btn"
+                onclick="mostrarSeccion('registros')"
+            >
+                📋 Registros
+            </button>
+
+        </nav>
+
+    </aside>
+
+
+    <!-- =====================================================
+         CONTENIDO PRINCIPAL
+    ====================================================== -->
+
+    <main class="main">
+
+        <header class="topbar">
+
+            <div>
+                <h1>Control de Accesos</h1>
+                <p>Sistema de códigos QR de un solo uso</p>
+            </div>
+
+        </header>
+
+
+        <!-- =================================================
+             DASHBOARD
+        ================================================== -->
+
+        <section
+            id="dashboard"
+            class="seccion activa"
+        >
+
+            <h2>Resumen</h2>
+
+            <div class="cards">
+
+                <div class="card">
+
+                    <div class="card-icon">
+                        🎟️
+                    </div>
+
+                    <div>
+                        <span>QR generados</span>
+                        <strong id="totalGenerados">0</strong>
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="card-icon">
+                        🚪
+                    </div>
+
+                    <div>
+                        <span>Ingresos</span>
+                        <strong id="totalIngresos">0</strong>
+                    </div>
+
+                </div>
+
+
+                <div class="card">
+
+                    <div class="card-icon">
+                        ⏳
+                    </div>
+
+                    <div>
+                        <span>Faltantes</span>
+                        <strong id="totalFaltantes">0</strong>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="dashboard-info">
+
+                <h3>Estado del evento</h3>
+
+                <p>
+                    Los QR pendientes todavía no fueron utilizados.
+                    Una vez escaneados, quedan marcados como ingresados
+                    y no pueden volver a utilizarse.
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             GENERAR QR
+        ================================================== -->
+
+        <section
+            id="generar"
+            class="seccion"
+        >
+
+            <div class="panel">
+
+                <h2>Generar código QR</h2>
+
+                <p class="descripcion">
+                    Ingresá únicamente el DNI de la persona.
+                </p>
+
+
+                <div class="form-group">
+
+                    <label for="dni">
+                        DNI
+                    </label>
+
+                    <input
+                        type="text"
+                        id="dni"
+                        placeholder="Ej: 12345678"
+                        maxlength="20"
+                        autocomplete="off"
+                    >
+
+                </div>
+
+
+                <button
+                    class="btn-primary"
+                    onclick="generarQR()"
+                >
+                    Generar QR
+                </button>
+
+
+                <!-- QR generado -->
+
+                <div
+                    id="contenedorQR"
+                    class="qr-container oculto"
+                >
+
+                    <h3>QR generado correctamente</h3>
+
+                    <p>
+                        DNI:
+                        <strong id="dniQR"></strong>
+                    </p>
+
+
+                    <div
+                        id="qrcode"
+                        class="qr"
+                    ></div>
+
+
+                    <div class="qr-actions">
+
+                        <button
+                            class="btn-primary"
+                            onclick="descargarQR()"
+                        >
+                            ⬇️ Descargar QR
+                        </button>
+
+
+                        <button
+                            class="btn-whatsapp"
+                            onclick="compartirWhatsApp()"
+                        >
+                            📱 WhatsApp
+                        </button>
+
+
+                        <button
+                            class="btn-secondary"
+                            onclick="imprimirQR()"
+                        >
+                            🖨️ Imprimir
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             ESCANEAR
+        ================================================== -->
+
+        <section
+            id="escanear"
+            class="seccion"
+        >
+
+            <div class="panel">
+
+                <h2>Escanear código QR</h2>
+
+                <p class="descripcion">
+                    Escaneá el QR para registrar el ingreso.
+                </p>
+
+
+                <button
+                    id="btnIniciarScanner"
+                    class="btn-primary"
+                    onclick="iniciarScanner()"
+                >
+                    📷 Iniciar cámara
+                </button>
+
+
+                <button
+                    id="btnDetenerScanner"
+                    class="btn-secondary oculto"
+                    onclick="detenerScanner()"
+                >
+                    Detener cámara
+                </button>
+
+
+                <div
+                    id="reader"
+                    class="reader"
+                ></div>
+
+
+                <div
+                    id="resultadoIngreso"
+                    class="resultado"
+                ></div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             REGISTROS
+        ================================================== -->
+
+        <section
+            id="registros"
+            class="seccion"
+        >
+
+            <div class="panel">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <h2>Registros</h2>
+
+                        <p class="descripcion">
+                            Personas y códigos QR generados.
+                        </p>
+
+                    </div>
+
+                    <button
+                        class="btn-secondary"
+                        onclick="cargarRegistros()"
+                    >
+                        🔄 Actualizar
+                    </button>
+
+                </div>
+
+
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+
+                                <th>DNI</th>
+
+                                <th>Estado</th>
+
+                                <th>Generado</th>
+
+                                <th>Ingreso</th>
+
+                                <th>Acciones</th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody id="tablaRegistros">
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+
+<!-- =========================================================
+     LIBRERÍAS
+========================================================= -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+
+<!-- =========================================================
+     APP
+========================================================= -->
+
+<script src="app.js"></script>
+
+</body>
+
+</html>
