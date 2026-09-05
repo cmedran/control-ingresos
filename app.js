@@ -407,78 +407,49 @@ function descargarQR() {
    COMPARTIR / WHATSAPP
 ========================================================= */
 
-async function compartirWhatsApp() {
-
-    if (
-        !ultimoTokenGenerado ||
-        !ultimoDniGenerado
-    ) {
-
-        alert(
-            "Primero generá un QR."
-        );
-
+if (!ultimoTokenGenerado || !ultimoDniGenerado) {
+        alert("Primero generá un QR.");
         return;
-
     }
 
+    const qrImg = document.querySelector("#qrcode img");
 
-    const qr =
-        document.querySelector(
-            "#qrcode img"
-        );
-
-
-    if (!qr) {
-
-        alert(
-            "No se encontró la imagen del QR."
-        );
-
+    if (!qrImg) {
+        alert("No se encontró la imagen del QR.");
         return;
-
     }
-
-
-    /*
-       Intentamos utilizar la función
-       nativa de compartir del dispositivo.
-    */
 
     try {
 
-        const response =
-            await fetch(qr.src);
+        // Convertir la imagen del QR en Blob
+        const response = await fetch(qrImg.src);
 
+        if (!response.ok) {
+            throw new Error("No se pudo obtener la imagen del QR.");
+        }
 
-        const blob =
-            await response.blob();
+        const blob = await response.blob();
 
+        // Crear archivo PNG
+        const archivo = new File(
+            [blob],
+            `QR_DNI_${ultimoDniGenerado}.png`,
+            {
+                type: "image/png"
+            }
+        );
 
-        const archivo =
-            new File(
-                [
-                    blob
-                ],
-                `QR_DNI_${ultimoDniGenerado}.png`,
-                {
-                    type: "image/png"
-                }
-            );
-
-
-        const texto =
+        const mensaje =
             `Hola 👋\n\n` +
             `Este es tu código QR de acceso.\n\n` +
             `DNI: ${ultimoDniGenerado}\n\n` +
             `Presentá este QR al momento de ingresar.\n` +
             `El código es válido para un único ingreso.`;
 
-
         /*
-           Si el navegador permite compartir
-           archivos, usamos Web Share API.
-        */
+         * Comprobar si el navegador permite
+         * compartir archivos.
+         */
 
         if (
             navigator.share &&
@@ -489,47 +460,34 @@ async function compartirWhatsApp() {
         ) {
 
             await navigator.share({
-
                 title: "Código QR de acceso",
-
-                text: texto,
-
+                text: mensaje,
                 files: [archivo]
-
             });
 
-
             return;
-
         }
 
-
         /*
-           Si no permite compartir archivos,
-           abrimos WhatsApp con el texto.
-        */
+         * Si estamos en PC o el navegador no admite
+         * compartir archivos, descargamos automáticamente
+         * el QR y abrimos WhatsApp con el mensaje.
+         */
 
-        const mensaje =
-            encodeURIComponent(texto);
+        descargarArchivoQR(blob);
 
-
-        const url =
-            `https://wa.me/?text=${mensaje}`;
-
+        const whatsappURL =
+            `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
 
         window.open(
-            url,
+            whatsappURL,
             "_blank"
         );
 
-
         alert(
-            "WhatsApp fue abierto.\n\n" +
-            "Como este navegador no permite adjuntar " +
-            "automáticamente el QR, descargá la imagen " +
-            "del QR y adjuntala en WhatsApp."
+            "El QR fue descargado automáticamente.\n\n" +
+            "Adjuntalo en la conversación de WhatsApp."
         );
-
 
     } catch (error) {
 
@@ -538,34 +496,35 @@ async function compartirWhatsApp() {
             error
         );
 
-
-        /*
-           Último recurso:
-           abrir WhatsApp con el mensaje.
-        */
-
-        const texto =
-            `Hola 👋\n\n` +
-            `Este es tu código QR de acceso.\n\n` +
-            `DNI: ${ultimoDniGenerado}\n\n` +
-            `Presentá este QR al momento de ingresar.\n` +
-            `El código es válido para un único ingreso.`;
-
-
-        const mensaje =
-            encodeURIComponent(texto);
-
-
-        window.open(
-            `https://wa.me/?text=${mensaje}`,
-            "_blank"
+        alert(
+            "No se pudo compartir el QR.\n\n" +
+            error.message
         );
-
     }
 
+    function descargarArchivoQR(blob) {
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const enlace =
+        document.createElement("a");
+
+    enlace.href = url;
+
+    enlace.download =
+        `QR_DNI_${ultimoDniGenerado}.png`;
+
+    document.body.appendChild(enlace);
+
+    enlace.click();
+
+    document.body.removeChild(enlace);
+
+    setTimeout(() => {
+        URL.revokeObjectURL(url);
+    }, 1000);
 }
-
-
 /* =========================================================
    INICIAR SCANNER
 ========================================================= */
